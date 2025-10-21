@@ -89,7 +89,7 @@ class Graph:
             edge.end_node.edges.append(edge)
 
     def add_feature(self, feature: Dict):
-        coords = feature["geometry"]["coordinates"]
+        coords = feature["geometry"]["coordinates"] # z modułu geometry pobiera tylko coordinates
         start_coord = coords[0]
         end_coord = coords[-1]
 
@@ -109,7 +109,7 @@ class Graph:
         for i in range(len(coords) - 1):
             length += euclidean_distance((coords[i][0], coords[i][1]), (coords[i + 1][0], coords[i + 1][1]))
 
-        classification = feature["properties"]["klasaDrogi"]
+        classification = feature["properties"]["KLASA_DROG"]
         # TODO: obsługa dróg jednokierunkowych (?)
 
         edge = Edge(feature["properties"]["idIIP_BT_I"], start_node, end_node, length, classification)
@@ -133,7 +133,7 @@ def draw_graph(G: Graph):
         y_coords = [edge.start_node.y, edge.end_node.y]
         ax.plot(x_coords, y_coords, color='blue', linewidth=0.5)
 
-    for node in G.nodes.values():
+    for node in G.nodes.values(): 
         ax.scatter(node.x, node.y, color='k', s=5)
 
     ax.set_title("Wizualizacja grafu")
@@ -147,7 +147,7 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
             gdf = gdf._append(gpd.read_file(p), ignore_index=True)
     else:
         gdf = gpd.read_file(file_path)
-    G = Graph()
+    G = Graph() # pusty obiekt grafu 
     G.shapefile_path = file_path
 
     # Iteracja po obiektach wczytanych do GeoDataFrame
@@ -162,9 +162,10 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
 
 # Demo
 if __name__ == "__main__":
-    shp_file_paths = ["kujawsko_pomorskie_m_Torun/L4_1_BDOT10k__OT_SKJZ_L.shp",
-                      "kujawsko_pomorskie_pow_torunski/L4_2_BDOT10k__OT_SKJZ_L.shp"]
-    test_path = "test_shp.shp"
+    #shp_file_paths = ["kujawsko_pomorskie_m_Torun/L4_1_BDOT10k__OT_SKJZ_L.shp",
+    #                  "kujawsko_pomorskie_pow_torunski/L4_2_BDOT10k__OT_SKJZ_L.shp"]
+    #test_path = r"C:\aszkola\5 sem\pag\projekt1\dane\testowe.shp"
+    test_path=r"C:\aszkola\5 sem\pag\projekt1\Nawigacja-PAG\testowe\TESTOWE.shp"
 
     graph = build_graph_from_shapefile(test_path)
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")
