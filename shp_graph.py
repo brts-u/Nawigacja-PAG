@@ -119,18 +119,29 @@ class Graph:
     def find_nearest_node(self, coordinates: Tuple[float, float]) -> Node:
         pass
     
-    def reconstruct_path(self, p:Dict, start:Node, end:Node ):
-        path = []
+    def reconstruct_path(self, p:Dict, start:Node, end:Node)-> List[Node]:
+        path_nodes = []
         current_id = end.id
         
         while current_id != -1:
-            path.append(self.nodes[current_id])
+            path_nodes.append(self.nodes[current_id])
             current_id = p[current_id]
+        path_nodes.reverse() #sciezka węzłów
 
-        path.reverse()
-        return path 
+        return path_nodes
     
-    # TODO: implement
+    def convert_nodes_to_edges(path_nodes: List[Edge])->List[Edge]: #konwertuje sciezke nodow na edgy
+        path_edges =[] #sciezka edgy
+
+        for i in range(len(path_nodes)-1):
+            n1=path_nodes[i]
+            n2=path_nodes[i+1]
+            for edge in n1.edges: #sprawdzam wszystkie edge dla noda
+                if edge.get_other_node(n1) ==n2: #szukam krawedzi dla dobrego konca
+                    path_edges.append(edge)
+                    break
+        return path_edges
+    
     def reconstruct_shp_path(self, path: List[Edge]):
         
         pass
