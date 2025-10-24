@@ -80,7 +80,7 @@ class Graph:
         self.edges = {}
         self._shapefile_path: str | List[str] | None = None
         self._kdtree = None
-        self._node_coords: List[Tuple[float, float]] = []
+        self._node_coords: List[Tuple[float, float]] = [] # Potencjalnie niepotrzebne, można wyjmować z Dict[Node]
 
     def add_node(self, node: Node):
         self.nodes[node.id] = node
@@ -171,7 +171,7 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
     else:
         gdf = gpd.read_file(file_path)
     G = Graph()
-    G.shapefile_path = file_path
+    G._shapefile_path = file_path
 
     # Iteracja po obiektach wczytanych do GeoDataFrame
     iterator = gdf.iterfeatures(drop_id=True)
@@ -184,6 +184,10 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
     G.build_kdtree()
     return G
 
+def draw_point(point: Tuple[float, float]):
+    x, y = point
+    plt.scatter(x, y, color='red', s=50, zorder=5)
+
 # Demo
 if __name__ == "__main__":
     shp_file_paths = ["kujawsko_pomorskie_m_Torun/L4_1_BDOT10k__OT_SKJZ_L.shp",
@@ -194,4 +198,8 @@ if __name__ == "__main__":
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")
 
     draw_graph(graph)
+    point = (473300, 571900)
+    draw_point(point)
+    nearest = graph.find_nearest_node(point)
+    draw_point((nearest.x, nearest.y))
     plt.show()
