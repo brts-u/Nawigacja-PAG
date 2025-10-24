@@ -9,6 +9,7 @@ from typing import List, Tuple, Dict
 
 import numpy as np
 import geopandas as gpd
+from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
 
 
@@ -77,10 +78,18 @@ class Graph:
     def __init__(self):
         self.nodes = {}
         self.edges = {}
-        self.shapefile_path: str | List[str] = ""
+        self._shapefile_path: str | List[str] | None = None
+        self._kdtree = None
+        self._node_coords: List[Tuple[float, float]] = [] # Potencjalnie niepotrzebne, można wyjmować z Dict[Node]
 
     def add_node(self, node: Node):
         self.nodes[node.id] = node
+        self._node_coords.append((node.x, node.y))
+        self._kdtree = None  # Invalidate KDTree
+
+    def build_kdtree(self):
+        if not self._kdtree:
+            self._kdtree = KDTree(self._node_coords)
 
     def add_edge(self, edge: Edge):
         self.edges[edge.id] = edge
@@ -115,9 +124,11 @@ class Graph:
         edge = Edge(feature["properties"]["LOKALNYID"], start_node, end_node, length, classification)
         self.add_edge(edge)
 
-    # TODO: implement, może robić na poziomie tworzenia grafu?
     def find_nearest_node(self, coordinates: Tuple[float, float]) -> Node:
-        pass
+       self.build_kdtree()
+        _, idx = self._kdtree.query(coordinates)
+        nearest_coord = self._node_coords[idx]
+        return self.nodes[node_id(nearest_coord[0], nearest_coord[1])]
     
     def reconstruct_path(self, p:Dict, start:Node, end:Node)-> List[Node]:
         path_nodes = []
@@ -142,9 +153,23 @@ class Graph:
                     break
         return path_edges
     
-    def reconstruct_shp_path(self, path: List[Edge]):
         
-        pass
+
+    def reconstruct_shp_path(self, path: List[Edge], output_path: str):
+        if self._shapefile_path is None:
+            print("Brak ścieżki pliku shapefile. Nie można zrekonstruować trasy")
+            return
+        if isinstance(self._shapefile_path, list):
+            gdf = gpd.read_file(self._shapefile_path[0])
+            for p in self._shapefile_path[1:]:
+                gdf = gdf._append(gpd.read_file(p), ignore_index=True)
+        else:
+            gdf = gpd.read_file(self._shapefile_path)
+        edge_ids = {edge.id for edge in path}
+        gdf_filtered = gdf[gdf["idIIP_BT_I"].isin(edge_ids)]
+        gdf_filtered.to_file(output_path, driver='ESRI Shapefile')
+        print(f"Zrekonstruowana trasa zapisana do {output_path}")
+
 
 
     def dijkstra(self, startpoint:Node, endpoint:Node):
@@ -210,8 +235,8 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
             gdf = gdf._append(gpd.read_file(p), ignore_index=True)
     else:
         gdf = gpd.read_file(file_path)
-    G = Graph() # pusty obiekt grafu 
-    G.shapefile_path = file_path
+    G = Graph()
+    G._shapefile_path = file_path
 
     # Iteracja po obiektach wczytanych do GeoDataFrame
     iterator = gdf.iterfeatures(drop_id=True)
@@ -221,6 +246,7 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
         except StopIteration:
             break
         G.add_feature(feature)
+    G.build_kdtree()
     return G
 
 
@@ -235,12 +261,15 @@ def draw_path (graph:Graph, route: List[Node]):
    
     plt.title("Ścieżka znaleziona przez Dijkstrę")
 
+def draw_point(point: Tuple[float, float]):
+    x, y = point
+    plt.scatter(x, y, color='red', s=50, zorder=5)
+
 # Demo
 if __name__ == "__main__":
-    #shp_file_paths = ["kujawsko_pomorskie_m_Torun/L4_1_BDOT10k__OT_SKJZ_L.shp",
-    #                  "kujawsko_pomorskie_pow_torunski/L4_2_BDOT10k__OT_SKJZ_L.shp"]
-    #test_path = r"C:\aszkola\5 sem\pag\projekt1\dane\testowe.shp"
-    test_path=r"C:\aszkola\5 sem\pag\projekt1\Nawigacja-PAG\testowe\TESTOWE.shp"
+    shp_file_paths = ["kujawsko_pomorskie_m_Torun/L4_1_BDOT10k__OT_SKJZ_L.shp",
+                      "kujawsko_pomorskie_pow_torunski/L4_2_BDOT10k__OT_SKJZ_L.shp"]
+    test_path = "..\\test_shp.shp"
 
     graph = build_graph_from_shapefile(test_path)
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")
