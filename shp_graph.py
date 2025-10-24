@@ -125,7 +125,7 @@ class Graph:
         self.add_edge(edge)
 
     def find_nearest_node(self, coordinates: Tuple[float, float]) -> Node:
-       self.build_kdtree()
+        self.build_kdtree()
         _, idx = self._kdtree.query(coordinates)
         nearest_coord = self._node_coords[idx]
         return self.nodes[node_id(nearest_coord[0], nearest_coord[1])]
