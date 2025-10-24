@@ -98,7 +98,7 @@ class Graph:
             edge.end_node.edges.append(edge)
 
     def add_feature(self, feature: Dict):
-        coords = feature["geometry"]["coordinates"]
+        coords = feature["geometry"]["coordinates"] # z modułu geometry pobiera tylko coordinates
         start_coord = coords[0]
         end_coord = coords[-1]
 
@@ -118,17 +118,42 @@ class Graph:
         for i in range(len(coords) - 1):
             length += euclidean_distance((coords[i][0], coords[i][1]), (coords[i + 1][0], coords[i + 1][1]))
 
-        classification = feature["properties"]["klasaDrogi"]
+        classification = feature["properties"]["KLASA_DROG"]
         # TODO: obsługa dróg jednokierunkowych (?)
 
-        edge = Edge(feature["properties"]["idIIP_BT_I"], start_node, end_node, length, classification)
+        edge = Edge(feature["properties"]["LOKALNYID"], start_node, end_node, length, classification)
         self.add_edge(edge)
 
     def find_nearest_node(self, coordinates: Tuple[float, float]) -> Node:
-        self.build_kdtree()
+       self.build_kdtree()
         _, idx = self._kdtree.query(coordinates)
         nearest_coord = self._node_coords[idx]
         return self.nodes[node_id(nearest_coord[0], nearest_coord[1])]
+    
+    def reconstruct_path(self, p:Dict, start:Node, end:Node)-> List[Node]:
+        path_nodes = []
+        current_id = end.id
+        
+        while current_id != -1:
+            path_nodes.append(self.nodes[current_id])
+            current_id = p[current_id]
+        path_nodes.reverse() #sciezka węzłów
+
+        return path_nodes
+    
+    def convert_nodes_to_edges(path_nodes: List[Edge])->List[Edge]: #konwertuje sciezke nodow na edgy
+        path_edges =[] #sciezka edgy
+
+        for i in range(len(path_nodes)-1):
+            n1=path_nodes[i]
+            n2=path_nodes[i+1]
+            for edge in n1.edges: #sprawdzam wszystkie edge dla noda
+                if edge.get_other_node(n1) ==n2: #szukam krawedzi dla dobrego konca
+                    path_edges.append(edge)
+                    break
+        return path_edges
+    
+        
 
     def reconstruct_shp_path(self, path: List[Edge], output_path: str):
         if self._shapefile_path is None:
@@ -146,6 +171,46 @@ class Graph:
         print(f"Zrekonstruowana trasa zapisana do {output_path}")
 
 
+
+    def dijkstra(self, startpoint:Node, endpoint:Node):
+        S = {} #wierzchołki przejrzane
+        Q = {} #wierzchołki nieodiwedzone
+        p = {} #poprzednicy
+        d = {} #aktualna długość ścieżek nieskonczonosc
+        for n in self.nodes.values():
+            Q[n.id] = n
+            d[n.id] = np.inf
+            p[n.id]=-1
+
+        d[startpoint.id]=0
+        
+        while Q: 
+            #szukam wezla o najmniejszym dystansie
+            min_dist = np.inf
+            curr_id = None
+            for node_id in Q:
+                if d[node_id] < min_dist:
+                    min_dist = d[node_id]
+                    curr_id = node_id
+
+            #przerzucam wezel
+            current = Q.pop(curr_id) 
+            S[curr_id] = current
+
+            if curr_id == endpoint.id:
+                break
+                
+            #szukam sasiadow i ustalam dla nich koszt
+            for neighbour, edge in current.get_neighbours():
+                if neighbour.id not in S:
+                    new_dist = d[curr_id] + edge.length
+                    if new_dist < d[neighbour.id]:
+                        d[neighbour.id] = new_dist
+                        p[neighbour.id] = curr_id
+        
+        route = self.reconstruct_path(p, startpoint, endpoint) #przemienia p na sciezke 
+        return route
+
 def draw_graph(G: Graph):
     # Rysowanie dla dużych grafów jest bardzo, bardzo wolne i pewnie nieczytelne, szczególnie rysowanie węzłów,
     # można rysować same krawędzie, ale i tak obrazek będzie jedynie do potwierdzenia, że "coś" zrobił
@@ -156,7 +221,7 @@ def draw_graph(G: Graph):
         y_coords = [edge.start_node.y, edge.end_node.y]
         ax.plot(x_coords, y_coords, color='blue', linewidth=0.5)
 
-    for node in G.nodes.values():
+    for node in G.nodes.values(): 
         ax.scatter(node.x, node.y, color='k', s=5)
 
     ax.set_title("Wizualizacja grafu")
@@ -184,6 +249,18 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
     G.build_kdtree()
     return G
 
+
+def draw_path (graph:Graph, route: List[Node]):
+    fig, ax = plt.subplots(figsize=(10, 10))
+    
+    draw_graph(graph)
+
+    Xcoords = [r.x for r in route]
+    Ycoords = [r.y for r in route]
+    plt.plot(Xcoords, Ycoords, color='r', marker ='o')
+   
+    plt.title("Ścieżka znaleziona przez Dijkstrę")
+
 def draw_point(point: Tuple[float, float]):
     x, y = point
     plt.scatter(x, y, color='red', s=50, zorder=5)
@@ -197,9 +274,13 @@ if __name__ == "__main__":
     graph = build_graph_from_shapefile(test_path)
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")
 
-    draw_graph(graph)
-    point = (473300, 571900)
-    draw_point(point)
-    nearest = graph.find_nearest_node(point)
-    draw_point((nearest.x, nearest.y))
+    nodes = list(graph.nodes.values())
+    route = graph.dijkstra(nodes[0], nodes[5])    
+
+    draw_path(graph, route)
+
+    #print(f"Node 3 {graph.nodes} nodes and {len(graph.edges)} edges."))
+
+    #draw_graph(graph)
+
     plt.show()
