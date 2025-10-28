@@ -140,21 +140,7 @@ class Graph:
         path_nodes.reverse() #sciezka węzłów
 
         return path_nodes
-    
-    def convert_nodes_to_edges(path_nodes: List[Edge])->List[Edge]: #konwertuje sciezke nodow na edgy
-        path_edges =[] #sciezka edgy
-
-        for i in range(len(path_nodes)-1):
-            n1=path_nodes[i]
-            n2=path_nodes[i+1]
-            for edge in n1.edges: #sprawdzam wszystkie edge dla noda
-                if edge.get_other_node(n1) ==n2: #szukam krawedzi dla dobrego konca
-                    path_edges.append(edge)
-                    break
-        return path_edges
-    
-        
-
+     
     def reconstruct_shp_path(self, path: List[Edge], output_path: str):
         if self._shapefile_path is None:
             print("Brak ścieżki pliku shapefile. Nie można zrekonstruować trasy")
@@ -170,9 +156,26 @@ class Graph:
         gdf_filtered.to_file(output_path, driver='ESRI Shapefile')
         print(f"Zrekonstruowana trasa zapisana do {output_path}")
 
+    def costs_matrix(self, points:List[Tuple[float, float]]):
+        n = len(points)
+        matrix = np.zeros((n,n)) #macierz nxn wypełniona zerami
+
+        for i in range(n):
+            for j in range(n):
+                if i ==j :
+                    matrix[i, j]=0
+                else: 
+                    route = convert_nodes_to_edges(self.dijkstra(points[i], points[j]))
+                    #KOSZT WYRAZAM JAKO SUMA LEGTH?!
+                    matrix[i,j] =calculate_route_cost(route)
+        
+        return matrix
 
 
-    def dijkstra(self, startpoint:Node, endpoint:Node):
+    def dijkstra(self, startpoint:Tuple[float, float], endpoint:Tuple[float, float]) -> List[Node]:
+        startpoint = self.find_nearest_node(startpoint)
+        endpoint = self.find_nearest_node(endpoint)
+
         S = {} #wierzchołki przejrzane
         Q = {} #wierzchołki nieodiwedzone
         p = {} #poprzednicy
@@ -222,8 +225,8 @@ def draw_graph(G: Graph):
         y_coords = [edge.start_node.y, edge.end_node.y]
         ax.plot(x_coords, y_coords, color='blue', linewidth=0.5)
 
-    for node in G.nodes.values(): 
-        ax.scatter(node.x, node.y, color='k', s=5)
+    #for node in G.nodes.values(): 
+    #    ax.scatter(node.x, node.y, color='k', s=5)
 
     ax.set_title("Wizualizacja grafu")
     ax.set_xlabel("Easting")
@@ -266,22 +269,59 @@ def draw_point(point: Tuple[float, float]):
     x, y = point
     plt.scatter(x, y, color='red', s=50, zorder=5)
 
+def read_points(path)-> List[Tuple[float, float]]:
+    points =[]
+    with open(path, 'r', encoding="utf-8-sig") as f:
+        for line in f:
+            line = line.strip()
+            
+            if not line:
+                continue
+            
+            x_str, y_str = line.split(';')
+            x, y = float(x_str.replace(',','.')), float(y_str.replace(',','.'))
+            points.append((x,y))
+    return points
+def convert_nodes_to_edges(path_nodes: List[Node])->List[Edge]: #konwertuje sciezke nodow na edgy
+    path_edges =[] #sciezka edgy
+
+    for i in range(len(path_nodes)-1):
+        n1=path_nodes[i]
+        n2=path_nodes[i+1]
+        for edge in n1.edges: #sprawdzam wszystkie edge dla noda
+            if edge.get_other_node(n1) ==n2: #szukam krawedzi dla dobrego konca
+                path_edges.append(edge)
+                break
+    return path_edges
+
+def calculate_route_cost(route:List[Edge]):
+    cost =0
+    for e in route:
+        cost += e.length
+    return cost
+
 # Demo
 if __name__ == "__main__":
     shp_file_paths = ["kujawsko_pomorskie_m_Torun/L4_1_BDOT10k__OT_SKJZ_L.shp",
                       "kujawsko_pomorskie_pow_torunski/L4_2_BDOT10k__OT_SKJZ_L.shp"]
-    test_path = "..\\test_shp.shp"
+    #test_path = r"C:\aszkola\5 sem\pag\projekt1\dane\testowe.shp"
+    test_path = r"C:\aszkola\5 sem\pag\projekt1\DROGIWYB\drogiwyb.shp"
+    points_path = r"C:\aszkola\5 sem\pag\projekt1\PUNKTY.txt"
 
     graph = build_graph_from_shapefile(test_path)
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")
 
-    nodes = list(graph.nodes.values())
-    route = graph.dijkstra(nodes[0], nodes[5])    
+    points = read_points(points_path)
+    mat = graph.costs_matrix(points)
+    print(mat)
 
-    draw_path(graph, route)
+    #nodes = list(graph.nodes.values())
+    #route = graph.dijkstra(nodes[0], nodes[5])    
+
+    #draw_path(graph, route)
 
     #print(f"Node 3 {graph.nodes} nodes and {len(graph.edges)} edges."))
 
     #draw_graph(graph)
 
-    plt.show()
+    #plt.show()
