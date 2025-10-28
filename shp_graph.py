@@ -170,6 +170,7 @@ class Graph:
 
             #przerzucam wezel
             current = Q.pop(curr_id) 
+            if current in S: continue #zabezpiecznie przed zduplikowanymi wierzcholkami
             S[curr_id] = current
 
             if curr_id == endpoint.id:
