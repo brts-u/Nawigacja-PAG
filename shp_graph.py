@@ -11,7 +11,7 @@ import numpy as np
 import geopandas as gpd
 from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
-
+import random
 
 def euclidean_distance(coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
     # Odległość między punktami
@@ -156,20 +156,25 @@ class Graph:
         gdf_filtered.to_file(output_path, driver='ESRI Shapefile')
         print(f"Zrekonstruowana trasa zapisana do {output_path}")
 
-    def costs_matrix(self, points:List[Tuple[float, float]]):
+    def matrixes(self, points:List[Tuple[float, float]]):
         n = len(points)
-        matrix = np.zeros((n,n)) #macierz nxn wypełniona zerami
+        cost_matrix = np.zeros((n,n)) #macierz nxn wypełniona zerami
+        routes_matrix = [[None for _ in range(n)] for _ in range(n)] 
+        mat_ids =[] # trzyma mi który punkt jest po kolei w macierzy
 
         for i in range(n):
+            mat_ids.append(points[i])
             for j in range(n):
                 if i ==j :
-                    matrix[i, j]=0
+                    cost_matrix[i, j]=0
+                    routes_matrix[i][j] = []
                 else: 
                     route = convert_nodes_to_edges(self.dijkstra(points[i], points[j]))
+                    routes_matrix[i][j] = route
                     #KOSZT WYRAZAM JAKO SUMA LEGTH?!
-                    matrix[i,j] =calculate_route_cost(route)
+                    cost_matrix[i,j] =calculate_route_cost(route)
         
-        return matrix
+        return cost_matrix, routes_matrix, mat_ids
 
 
     def dijkstra(self, startpoint:Tuple[float, float], endpoint:Tuple[float, float]) -> List[Node]:
@@ -282,6 +287,7 @@ def read_points(path)-> List[Tuple[float, float]]:
             x, y = float(x_str.replace(',','.')), float(y_str.replace(',','.'))
             points.append((x,y))
     return points
+
 def convert_nodes_to_edges(path_nodes: List[Node])->List[Edge]: #konwertuje sciezke nodow na edgy
     path_edges =[] #sciezka edgy
 
@@ -300,6 +306,26 @@ def calculate_route_cost(route:List[Edge]):
         cost += e.length
     return cost
 
+def rand_route_points(points: List[Tuple[float, float]], route_mat:np.ndarray, 
+                      cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]]):
+
+    n = len(points)
+    ids = [mat_ids.index(p) for p in points] # konwertuje wybrane punkty na indeksy w macierzach
+    random.shuffle(ids)
+  
+    total_cost = 0
+    full_route = []
+    
+    for i in range (n-1):
+        a, b = ids[i], ids[i +1]
+        #ia = point_to_index[a]
+        #ib = point_to_index[b]
+        total_cost += cost_mat[a, b]
+        full_route.extend(route_mat[a][b])
+    
+    return full_route, total_cost, ids
+
+
 # Demo
 if __name__ == "__main__":
     shp_file_paths = ["kujawsko_pomorskie_m_Torun/L4_1_BDOT10k__OT_SKJZ_L.shp",
@@ -307,13 +333,20 @@ if __name__ == "__main__":
     #test_path = r"C:\aszkola\5 sem\pag\projekt1\dane\testowe.shp"
     test_path = r"C:\aszkola\5 sem\pag\projekt1\DROGIWYB\drogiwyb.shp"
     points_path = r"C:\aszkola\5 sem\pag\projekt1\PUNKTY.txt"
+    points2_path =r"C:\aszkola\5 sem\pag\projekt1\Nawigacja-PAG\punkty2.txt"
 
     graph = build_graph_from_shapefile(test_path)
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")
 
     points = read_points(points_path)
-    mat = graph.costs_matrix(points)
-    print(mat)
+    cost_matrix, routes_matrix, mat_ids = graph.matrixes(points)
+    print(cost_matrix) 
+    points2 = read_points(points2_path)
+    full_route, total_cost, ids = rand_route_points(points2, routes_matrix, cost_matrix, mat_ids)
+
+    print(total_cost)
+    
+    
 
     #nodes = list(graph.nodes.values())
     #route = graph.dijkstra(nodes[0], nodes[5])    
