@@ -7,22 +7,13 @@ Data: 2025-10-17
 from __future__ import annotations
 from typing import List, Tuple, Dict
 
+from support_functions import *
+
 import numpy as np
 import geopandas as gpd
-from scipy.spatial import KDTree
-import matplotlib.pyplot as plt
+from scipy.spatial import cKDTree
 import random
 
-def floor(a: float, n: int):
-    return np.floor(a * 10**n) / 10**n
-def ceil(a: float, n: int):
-    return np.ceil(a * 10**n) / 10**n
-def euclidean_distance(coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
-    # Odległość między punktami
-    return np.sqrt((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2)
-def approx(a: float, b: float, tol: float = 0.10) -> bool:
-    # Przybliżenie
-    return abs(a - b) < tol
 
 # Klasa węzła grafu
 class Node:
@@ -42,13 +33,14 @@ class Node:
 
 # Prędkości przypisane do klas dróg w km/h
 speed = {   # Okazuje się, że nie da się tego zmapować tak 1:1, więc wybrałem takie, które mają największy sens
-    "A": 140,   # Autostrada
-    "S": 120,   # Droga ekspresowa
-    "GP": 90,   # Droga główna przyspieszona
-    "G": 70,    # Droga główna
-    "Z": 50,    # Droga zbiorcza
-    "L": 40,    # Droga lokalna
-    "I": 30     # Droga dojazdowa
+    "autostrada": 140,   # Autostrada
+    "droga ekspresowa": 120,   # Droga ekspresowa
+    "droga główna ruchu przyśpieszonego": 90,   # Droga główna przyspieszona
+    "droga główna": 70,    # Droga główna
+    "droga zbiorcza": 50,    # Droga zbiorcza
+    "droga lokalna": 40,    # Droga lokalna
+    "droga dojazdowa": 30, # Droga dojazdowa
+    "droga wewnętrzna": 20  # Droga wewnętrzna
 }
 
 class Edge:
@@ -87,7 +79,7 @@ class Graph:
 
     def build_kdtree(self):
         if not self._kdtree:
-            self._kdtree = KDTree(self._node_coords)
+            self._kdtree = cKDTree(self._node_coords)
 
     def add_edge(self, edge: Edge):
         self.edges[edge.id] = edge
@@ -113,10 +105,10 @@ class Graph:
         for i in range(len(coords) - 1):
             length += euclidean_distance((coords[i][0], coords[i][1]), (coords[i + 1][0], coords[i + 1][1]))
 
-        classification = feature["properties"]["klasaDrogi"]
+        classification = feature["properties"]["KLASA_DROG"]
         # TODO: obsługa dróg jednokierunkowych (?)
 
-        edge = Edge(feature["properties"]["idIIP_BT_I"], start_node, end_node, length, classification)
+        edge = Edge(feature["properties"]["LOKALNYID"], start_node, end_node, length, classification)
         self.add_edge(edge)
 
     def find_nearest_node(self, coordinates: Tuple[float, float]) -> Node:
@@ -208,30 +200,13 @@ class Graph:
             #szukam sasiadow i ustalam dla nich koszt
             for neighbour, edge in current.get_neighbours():
                 if neighbour.id not in S:
-                    new_dist = d[curr_id] + edge.length
+                    new_dist = d[curr_id] + edge.cost()
                     if new_dist < d[neighbour.id]:
                         d[neighbour.id] = new_dist
                         p[neighbour.id] = curr_id
         
         route = self.reconstruct_path(p, startpoint, endpoint) #przemienia p na sciezke 
         return route
-
-def draw_graph(G: Graph):
-    # Rysowanie dla dużych grafów jest bardzo, bardzo wolne i pewnie nieczytelne, szczególnie rysowanie węzłów,
-    # można rysować same krawędzie, ale i tak obrazek będzie jedynie do potwierdzenia, że "coś" zrobił
-    fig, ax = plt.subplots(figsize=(10, 10))
-
-    for edge in G.edges.values():
-        x_coords = [edge.start_node.x, edge.end_node.x]
-        y_coords = [edge.start_node.y, edge.end_node.y]
-        ax.plot(x_coords, y_coords, color='blue', linewidth=0.5)
-
-    for node in G.nodes.values():
-        ax.scatter(node.x, node.y, color='k', s=5)
-
-    ax.set_title("Wizualizacja grafu")
-    ax.set_xlabel("Easting")
-    ax.set_ylabel("Northing")
 
 class NodeManager:
     def __init__(self):
@@ -276,36 +251,6 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
         G.add_feature(feature, NM)
     G.build_kdtree()
     return G
-
-
-def draw_path (graph:Graph, route: List[Node]):
-    fig, ax = plt.subplots(figsize=(10, 10))
-    
-    draw_graph(graph)
-
-    Xcoords = [r.x for r in route]
-    Ycoords = [r.y for r in route]
-    plt.plot(Xcoords, Ycoords, color='r', marker ='o')
-   
-    plt.title("Ścieżka znaleziona przez Dijkstrę")
-
-def draw_point(point: Tuple[float, float]):
-    x, y = point
-    plt.scatter(x, y, color='red', s=50, zorder=5)
-
-def read_points(path)-> List[Tuple[float, float]]:
-    points =[]
-    with open(path, 'r', encoding="utf-8-sig") as f:
-        for line in f:
-            line = line.strip()
-            
-            if not line:
-                continue
-            
-            x_str, y_str = line.split(';')
-            x, y = float(x_str.replace(',','.')), float(y_str.replace(',','.'))
-            points.append((x,y))
-    return points
 
 def convert_nodes_to_edges(path_nodes: List[Node])->List[Edge]: #konwertuje sciezke nodow na edgy
     path_edges =[] #sciezka edgy
@@ -355,9 +300,9 @@ if __name__ == "__main__":
     points_path = r"C:\aszkola\5 sem\pag\projekt1\PUNKTY.txt"
     points2_path =r"C:\aszkola\5 sem\pag\projekt1\Nawigacja-PAG\punkty2.txt"
 
-    graph = build_graph_from_shapefile(rozjechane)
+    graph = build_graph_from_shapefile(shp_file_paths)
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")
-    #
+
     # points = read_points(points_path)
     # cost_matrix, routes_matrix, mat_ids = graph.matrixes(points)
     # print(cost_matrix)
@@ -365,19 +310,9 @@ if __name__ == "__main__":
     # full_route, total_cost, ids = rand_route_points(points2, routes_matrix, cost_matrix, mat_ids)
     #
     # print(total_cost)
-    
-    
 
-    # nodes = list(graph.nodes.values())
-    # route = graph.dijkstra(nodes[0], nodes[5])
-    #
-    # draw_path(graph, route)
 
-    #print(f"Node 3 {graph.nodes} nodes and {len(graph.edges)} edges."))
 
-    draw_graph(graph)
-    my_point = (473600, 571800)
-    nearest = graph.find_nearest_node(my_point)
-    draw_point(my_point)
-    draw_point((nearest.x, nearest.y))
-    plt.show()
+    nodes = list(graph.nodes.values())
+    route = graph.dijkstra((473300, 571850), (nodes[30].x, nodes[30].y))
+    print(f"Znaleziono trasę o długości {calculate_route_cost(convert_nodes_to_edges(route))} metrów.")
