@@ -11,7 +11,8 @@ import numpy as np
 import geopandas as gpd
 from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
-import random
+import folium
+from komiwojazer import opt_route_edges
 
 def euclidean_distance(coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
     # Odległość między punktami
@@ -258,21 +259,36 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
     G.build_kdtree()
     return G
 
-
 def draw_path (graph:Graph, route: List[Node]):
     fig, ax = plt.subplots(figsize=(10, 10))
-    
     draw_graph(graph)
-
     Xcoords = [r.x for r in route]
     Ycoords = [r.y for r in route]
     plt.plot(Xcoords, Ycoords, color='r', marker ='o')
-   
     plt.title("Ścieżka znaleziona przez Dijkstrę")
 
-def draw_point(point: Tuple[float, float]):
-    x, y = point
-    plt.scatter(x, y, color='red', s=50, zorder=5)
+def draw_pts_connection(graph:Graph, edges: List[Edge], coords = List[Tuple[float, float]]):
+
+    draw_graph(graph)
+
+    for edge in edges:
+        x_coords = [edge.start_node.x, edge.end_node.x]
+        y_coords = [edge.start_node.y, edge.end_node.y]
+        plt.plot(x_coords, y_coords, color='r')  # linia
+
+        ptsXcoords = [c[0] for c in coords]
+        ptsYcoords = [c[1] for c in coords]
+
+        plt.plot(ptsXcoords,ptsYcoords, 'ro')
+   
+    plt.title("Ścieżka travelling salesman")
+    plt.show()
+
+
+
+# def draw_point(point: Tuple[float, float]):
+#     x, y = point
+#     plt.scatter(x, y, color='red', s=50, zorder=5)
 
 def read_points(path)-> List[Tuple[float, float]]:
     points =[]
@@ -306,26 +322,6 @@ def calculate_route_cost(route:List[Edge]):
         cost += e.length
     return cost
 
-def rand_route_points(points: List[Tuple[float, float]], route_mat:np.ndarray, 
-                      cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]]):
-
-    n = len(points)
-    ids = [mat_ids.index(p) for p in points] # konwertuje wybrane punkty na indeksy w macierzach
-    random.shuffle(ids)
-  
-    total_cost = 0
-    full_route = []
-    
-    for i in range (n-1):
-        a, b = ids[i], ids[i +1]
-        #ia = point_to_index[a]
-        #ib = point_to_index[b]
-        total_cost += cost_mat[a, b]
-        full_route.extend(route_mat[a][b])
-    
-    return full_route, total_cost, ids
-
-
 # Demo
 if __name__ == "__main__":
     shp_file_paths = ["kujawsko_pomorskie_m_Torun/L4_1_BDOT10k__OT_SKJZ_L.shp",
@@ -338,23 +334,15 @@ if __name__ == "__main__":
     graph = build_graph_from_shapefile(test_path)
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")
 
-    points = read_points(points_path)
-    cost_matrix, routes_matrix, mat_ids = graph.matrixes(points)
-    print(cost_matrix) 
-    points2 = read_points(points2_path)
-    full_route, total_cost, ids = rand_route_points(points2, routes_matrix, cost_matrix, mat_ids)
+    points = read_points(points_path) # tutaj trzeba wczytac te 40 pkt 
+    cost_matrix, routes_matrix, mat_ids = graph.matrixes(points) #a tu sie beda cala noc liczyly
+    points2 = read_points(points2_path) # tutaj wczytac punkty ktore sb wybralam
 
-    print(total_cost)
+    final, pts = opt_route_edges(points2, routes_matrix, cost_matrix, mat_ids)
+
+    draw_pts_connection(graph, final,pts)
+    
+
+
     
     
-
-    #nodes = list(graph.nodes.values())
-    #route = graph.dijkstra(nodes[0], nodes[5])    
-
-    #draw_path(graph, route)
-
-    #print(f"Node 3 {graph.nodes} nodes and {len(graph.edges)} edges."))
-
-    #draw_graph(graph)
-
-    #plt.show()
