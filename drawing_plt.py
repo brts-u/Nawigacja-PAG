@@ -14,9 +14,9 @@ def draw_graph(G: Graph, /, nodeless: bool = False):
         y_coords = [edge.start_node.y, edge.end_node.y]
         ax.plot(x_coords, y_coords, color='blue', linewidth=0.5)
 
-    if not nodeless:
-        for node in G.nodes.values():
-            ax.scatter(node.x, node.y, color='k', s=5)
+    #if not nodeless:
+      #  for node in G.nodes.values():
+      #      ax.scatter(node.x, node.y, color='k', s=5)
 
     ax.set_title("Wizualizacja grafu")
     ax.set_xlabel("Easting")
@@ -37,20 +37,26 @@ def draw_point(point: Tuple[float, float]):
     plt.scatter(x, y, color='red', s=50, zorder=5)
 
 
-def draw_pts_connection(graph: Graph, edges: List[Edge], coords=List[Tuple[float, float]]):
+def draw_pts_connection(graph: Graph, edges, coords=List[Tuple[float, float]]):
     draw_graph(graph)
 
+    #for edge in edges:
+        #x_coords = [edge.start_node.x, edge.end_node.x]
+        #y_coords = [edge.start_node.y, edge.end_node.y]
     for edge in edges:
-        x_coords = [edge.start_node.x, edge.end_node.x]
-        y_coords = [edge.start_node.y, edge.end_node.y]
+        start = graph.nodes[edge[0]]
+        end = graph.nodes[edge[1]]
+        x_coords = [start.x, end.x]
+        y_coords = [start.y, end.y]
         plt.plot(x_coords, y_coords, color='r')  # linia
 
-        ptsXcoords = [c[0] for c in coords]
-        ptsYcoords = [c[1] for c in coords]
+    ptsXcoords = [c[0] for c in coords]
+    ptsYcoords = [c[1] for c in coords]
 
-        plt.plot(ptsXcoords, ptsYcoords, 'ro')
+    plt.plot(ptsXcoords, ptsYcoords, 'ro')
 
     plt.title("Ścieżka travelling salesman")
+    plt.show()
 
 # Demo
 if __name__ == "__main__":
