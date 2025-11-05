@@ -11,13 +11,9 @@ from support_functions import *
 
 import numpy as np
 import geopandas as gpd
-from scipy.spatial import KDTree
-import matplotlib.pyplot as plt
 import folium
 from komiwojazer import opt_route_edges
 from scipy.spatial import cKDTree
-import random
-
 
 # Klasa węzła grafu
 class Node:
@@ -256,51 +252,6 @@ def build_graph_from_shapefile(file_path: str | List[str]) -> Graph:
     G.build_kdtree()
     return G
 
-def draw_path (graph:Graph, route: List[Node]):
-    fig, ax = plt.subplots(figsize=(10, 10))
-    draw_graph(graph)
-    Xcoords = [r.x for r in route]
-    Ycoords = [r.y for r in route]
-    plt.plot(Xcoords, Ycoords, color='r', marker ='o')
-    plt.title("Ścieżka znaleziona przez Dijkstrę")
-
-def draw_pts_connection(graph:Graph, edges: List[Edge], coords = List[Tuple[float, float]]):
-
-    draw_graph(graph)
-
-    for edge in edges:
-        x_coords = [edge.start_node.x, edge.end_node.x]
-        y_coords = [edge.start_node.y, edge.end_node.y]
-        plt.plot(x_coords, y_coords, color='r')  # linia
-
-        ptsXcoords = [c[0] for c in coords]
-        ptsYcoords = [c[1] for c in coords]
-
-        plt.plot(ptsXcoords,ptsYcoords, 'ro')
-   
-    plt.title("Ścieżka travelling salesman")
-    plt.show()
-
-
-
-# def draw_point(point: Tuple[float, float]):
-#     x, y = point
-#     plt.scatter(x, y, color='red', s=50, zorder=5)
-
-def read_points(path)-> List[Tuple[float, float]]:
-    points =[]
-    with open(path, 'r', encoding="utf-8-sig") as f:
-        for line in f:
-            line = line.strip()
-            
-            if not line:
-                continue
-            
-            x_str, y_str = line.split(';')
-            x, y = float(x_str.replace(',','.')), float(y_str.replace(',','.'))
-            points.append((x,y))
-    return points
-
 def convert_nodes_to_edges(path_nodes: List[Node])->List[Edge]: #konwertuje sciezke nodow na edgy
     path_edges =[] #sciezka edgy
 
@@ -316,7 +267,7 @@ def convert_nodes_to_edges(path_nodes: List[Node])->List[Edge]: #konwertuje scie
 def calculate_route_cost(route:List[Edge]):
     cost =0
     for e in route:
-        cost += e.length
+        cost += e.length # TODO: e.cost() ?
     return cost
 
 # Demo
@@ -338,6 +289,7 @@ if __name__ == "__main__":
 
     final, pts = opt_route_edges(points2, routes_matrix, cost_matrix, mat_ids)
 
+    from drawing_plt import draw_pts_connection
     draw_pts_connection(graph, final,pts)
     
     # points = read_points(points_path)
