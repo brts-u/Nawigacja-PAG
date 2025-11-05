@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import time
+import random
 from shp_graph import *
 
 def draw_graph(G: Graph, /, nodeless: bool = False):
@@ -34,6 +35,22 @@ def draw_path(graph: Graph, route: List[Node]):
 def draw_point(point: Tuple[float, float]):
     x, y = point
     plt.scatter(x, y, color='red', s=50, zorder=5)
+
+
+def draw_pts_connection(graph: Graph, edges: List[Edge], coords=List[Tuple[float, float]]):
+    draw_graph(graph)
+
+    for edge in edges:
+        x_coords = [edge.start_node.x, edge.end_node.x]
+        y_coords = [edge.start_node.y, edge.end_node.y]
+        plt.plot(x_coords, y_coords, color='r')  # linia
+
+        ptsXcoords = [c[0] for c in coords]
+        ptsYcoords = [c[1] for c in coords]
+
+        plt.plot(ptsXcoords, ptsYcoords, 'ro')
+
+    plt.title("Ścieżka travelling salesman")
 
 # Demo
 if __name__ == "__main__":
