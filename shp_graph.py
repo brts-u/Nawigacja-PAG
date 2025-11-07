@@ -5,17 +5,19 @@ Autor: Bartosz Urbanek 331931
 Data: 2025-10-17
 """
 from __future__ import annotations
+
 from typing import List, Tuple, Dict
 
 from support_functions import *
 
+import time
 import random
 import numpy as np
 import geopandas as gpd
 from komiwojazer import opt_route_edges
 from scipy.spatial import cKDTree
-import pickle 
-from drawing_plt import *
+import pickle
+import heapq
 
 # Klasa węzła grafu
 class Node:
@@ -31,7 +33,7 @@ class Node:
         # Teoretycznie powinien być blok Try-Except, ale to by oznaczało, że graf został błędnie zbudowany
 
     def heuristic(self, other: Node) -> float:
-        return euclidean_distance((self.x, self.y), (other.x, other.y))
+        return euclidean_distance((self.x, self.y), (other.x, other.y)) / (1000 * speed['autostrada'])
 
 # Prędkości przypisane do klas dróg w km/h
 speed = {   # Okazuje się, że nie da się tego zmapować tak 1:1, więc wybrałem takie, które mają największy sens
@@ -147,7 +149,12 @@ class Graph:
         gdf_filtered.to_file(output_path, driver='ESRI Shapefile')
         print(f"Zrekonstruowana trasa zapisana do {output_path}")
 
-    def matrixes(self, points:List[Tuple[float, float]]):
+    def matrixes(self, points:List[Tuple[float, float]]) -> str:
+        """
+        Tworzy macierze kosztów i tras między wszytskimi punkami i zapisuje je do pickla
+        :param points: lista punktów (x, y)
+        :return: ścieżka do pliku .pkl z macierzą kosztów 'cost_matrix', macierzą tras 'route_matrix' i listą indeksów 'mat_ids'
+        """
         n = len(points)
         cost_matrix = np.zeros((n,n)) #macierz nxn wypełniona zerami
         routes_matrix = [[None for _ in range(n)] for _ in range(n)] 
@@ -160,23 +167,23 @@ class Graph:
                     cost_matrix[i, j]=0
                     routes_matrix[i][j] = []
                 else: 
-                    route = convert_nodes_to_edges(self.dijkstra(points[i], points[j]))
+                    route = convert_nodes_to_edges(self.A_star(points[i], points[j]))
                     # zamiast zapisywać obiekty — zapisujemy tylko ID 
                     safe_route = [(edge.start_node.id, edge.end_node.id) for edge in route]
                     routes_matrix[i][j] = safe_route
                     #routes_matrix[i][j] = route
                     cost_matrix[i,j] =calculate_route_cost(route)
 
-        with open("matrix_data2.pkl", "wb") as f:
+        pickle_path = "matrix_data2.pkl"
+        with open(pickle_path, "wb") as f:
             pickle.dump({
                 "cost_matrix": cost_matrix,
                 "routes_matrix": routes_matrix, #zawiera pełną listę krawędzi (par ID węzłów)
                 "mat_ids": mat_ids
             }, f)
         
-        return cost_matrix, routes_matrix, mat_ids
+        return pickle_path
 
-    #TODO: zmienic nazwe a*
     def dijkstra(self, startpoint:Tuple[float, float], endpoint:Tuple[float, float]) -> List[Node]:
         startpoint = self.find_nearest_node(startpoint)
         endpoint = self.find_nearest_node(endpoint)
@@ -198,7 +205,7 @@ class Graph:
             curr_id = None
 
             for node_id in Q:
-                dist = d[node_id]+ heuristic(Q[node_id], endpoint)
+                dist = d[node_id]
                 if dist< min_dist:
                     min_dist = dist
                     curr_id = node_id
@@ -221,7 +228,68 @@ class Graph:
         
         route = self.reconstruct_path(p, startpoint, endpoint) #przemienia p na sciezke 
         return route
-    
+
+    def A_star(self, startpoint:Tuple[float, float], endpoint:Tuple[float, float]) -> List[Node]:
+        # Find nearest nodes to the given coordinates
+        startpoint = self.find_nearest_node(startpoint)
+        endpoint = self.find_nearest_node(endpoint)
+
+        # Initialize data structures
+        S = {}  # visited nodes
+        p = {}  # predecessors
+        d = {}  # distances from start (g-score)
+
+        # Initialize all nodes
+        for n in self.nodes.values():
+            d[n.id] = np.inf
+            p[n.id] = -1
+
+        d[startpoint.id] = 0
+
+        # Priority queue: (f_score, node_id)
+        # f_score = g_score + heuristic
+        open_set = [(0 + startpoint.heuristic(endpoint), startpoint.id)]
+        open_set_ids = {startpoint.id}  # Track what's in the queue
+
+        while open_set:
+            # Get node with lowest f_score
+            current_f, curr_id = heapq.heappop(open_set)
+            open_set_ids.discard(curr_id)
+
+            # Skip if already visited
+            if curr_id in S:
+                continue
+
+            # Mark as visited
+            current = self.nodes[curr_id]
+            S[curr_id] = current
+
+            # Check if we reached the goal
+            if curr_id == endpoint.id:
+                break
+
+            # Explore neighbors
+            for neighbour, edge in current.get_neighbours():
+                if neighbour.id not in S:
+                    # Calculate new distance (g-score)
+                    new_dist = d[curr_id] + edge.cost()
+
+                    # If this path is better
+                    if new_dist < d[neighbour.id]:
+                        d[neighbour.id] = new_dist
+                        p[neighbour.id] = curr_id
+
+                        # Calculate f_score for priority queue
+                        f_score = new_dist + neighbour.heuristic(endpoint)
+
+                        # Add to open set
+                        if neighbour.id not in open_set_ids:
+                            heapq.heappush(open_set, (f_score, neighbour.id))
+                            open_set_ids.add(neighbour.id)
+
+        # Reconstruct and return the path (same format as your Dijkstra)
+        route = self.reconstruct_path(p, startpoint, endpoint)
+        return route
 
 
 class NodeManager:
@@ -284,13 +352,13 @@ def convert_nodes_to_edges(path_nodes: List[Node])->List[Edge]: #konwertuje scie
 def calculate_route_cost(route:List[Edge]):
     cost =0
     for e in route:
-        cost += e.cost() # TODO: e.cost() ?
+        cost += e.cost()
     return cost
 
 # Demo
 if __name__ == "__main__":
     shp_file_paths = [r"..\SHP_SKJZ\PL.PZGiK.994.BDOT10k.0463__OT_SKJZ_L.shp", r"..\SHP_SKJZ\PL.PZGiK.994.BDOT10k.0415__OT_SKJZ_L.shp"]
-    json_pts_path = r"..\punkty\punkty.geojson"
+    json_pts_path = r"..\punkty\25.geojson"
     #test_path = r"C:\aszkola\5 sem\pag\projekt1\dane\testowe.shp"
     test_path = r"..\test_shp.shp"
     rozjechane = r"C:\Users\burb2\Desktop\Pliki Studia\PAG\rozjechane_drogi.shp"
@@ -302,16 +370,17 @@ if __name__ == "__main__":
 
     # points = read_points(points_path) # tutaj trzeba wczytac te 40 pkt
     points = read_json_points(json_pts_path)
-    points2 = random.sample(points, 10)
-    cost_matrix, routes_matrix, mat_ids = graph.matrixes(points) #a tu sie beda cala noc liczyly
+    # points2 = random.sample(points, len(points)) # wybiera wszystkie
+    points2 = range(len(points)) # wybiera wszystkie
+    pickle_file = graph.matrixes(points) #a tu sie beda cala noc liczyly
     # points2 = read_points(points2_path) # tutaj wczytac punkty ktore sb wybralam
 
-    final, pts = opt_route_edges(points2, routes_matrix, cost_matrix, mat_ids)
+    final, pts = opt_route_edges(points2, pickle_file)
 
-    saved_matrixes = "matrix_data.pkl"
+    # saved_matrixes = "matrix_data.pkl"
     #TODO: wgrane jest 14 punktów -> trzebby zrobić na końcowm jakieś validate
-    selected_ids = [0,3, 6, 7, 10,13]
-    final, pts = opt_route_edges(selected_ids, saved_matrixes)
+    # selected_ids = [0,3, 6, 7, 10,13]
+    # final, pts = opt_route_edges(selected_ids, pickle_file)
    
     from drawing_plt import draw_pts_connection
     draw_pts_connection(graph, final,pts)

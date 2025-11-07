@@ -86,7 +86,7 @@ if __name__ == "__main__":
         lat2, lon2 = transformer.transform(point2.x, point2.y)
         print(f"Wylosowane punkty ({lon1}, {lat1}), ({lon2}, {lat2})")
 
-    route = graph.dijkstra((point1.x, point1.y), (point2.x, point2.y))
+    route = graph.A_star((point1.x, point1.y), (point2.x, point2.y))
     t3 = time.time()
 
     print(f"Obliczanie trasy zajęło {round(t3-t2, 3)} s")

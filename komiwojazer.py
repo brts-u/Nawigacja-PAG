@@ -16,7 +16,7 @@ def rand_route_points(points: List[Tuple[float, float]], route_mat:np.ndarray, c
     cheapest_route =[]
     cheapest_ids =[]
 
-    for t in range(10): #losuje x=10 razy i sprawdzam ktora jest
+    for _ in range(10000): #losuje x=10 razy i sprawdzam ktora jest
         shuf_ids = ids.copy()
         random.shuffle(shuf_ids)
 
@@ -35,10 +35,10 @@ def rand_route_points(points: List[Tuple[float, float]], route_mat:np.ndarray, c
             cheapest_route = full_route
             cheapest_ids = shuf_ids.copy()
         
-        print(cheapest)
+            print(cheapest)
 
-    print(f"typ: {type(cheapest_ids)}")
-    print(cheapest_ids)
+    # print(f"typ: {type(cheapest_ids)}")
+    # print(cheapest_ids)
     return cheapest_route, cheapest, cheapest_ids
 
 def optymalization(cheapest_ids: List[int], cost_mat: np.ndarray):
@@ -52,10 +52,10 @@ def optymalization(cheapest_ids: List[int], cost_mat: np.ndarray):
     opt_route = cheapest_ids.copy()
     opt_cost =route_cost(cheapest_ids)
     print(f"cheapest opt: {opt_cost}")
-    improved = True
+    improved = 1
 
     while improved:
-        improved =False
+        improved -= 1
         for i in range(len(opt_route)-1):
             for j in range(i+1, len(opt_route)):
                 test_route = opt_route.copy()
@@ -65,7 +65,7 @@ def optymalization(cheapest_ids: List[int], cost_mat: np.ndarray):
                     print(f"Lepsza trasa po zamianie {i}<->{j}: {new_cost:.3f}")
                     opt_cost = new_cost
                     opt_route = test_route
-                    improved = True
+                    improved += 1
                     break
             if improved:
                 break
