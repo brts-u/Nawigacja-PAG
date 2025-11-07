@@ -1,11 +1,14 @@
 from typing import List, Tuple, Dict
 import numpy as np
 import random
+import pickle
 
-def rand_route_points(points: List[Tuple[float, float]], route_mat:np.ndarray, 
-                      cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]]):
+def rand_route_points(points: List[Tuple[float, float]], route_mat:np.ndarray, cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]] ):
+    
+    #points: List[Tuple[float, float]], route_mat:np.ndarray, cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]]):
     #jeśli pętla to na koniec trzeba dodac punkt który był pierwszy
     # pierwszy punkt jest startowy!
+
     n = len(points)
     ids = [mat_ids.index(p) for p in points] # konwertuje wybrane punkty na indeksy w macierzach
     
@@ -70,10 +73,19 @@ def optymalization(cheapest_ids: List[int], cost_mat: np.ndarray):
     print(f"Kolejność punktów (indeksy): {opt_route}")
     return opt_route, opt_cost
 
-def opt_route_edges(points: List[Tuple[float, float]], route_mat:np.ndarray, 
-                      cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]]):
-    
-    _, _, cheapest_ids = rand_route_points(points, route_mat, cost_mat, mat_ids)
+def opt_route_edges(selected_ids=List[int], matdata="matrix_data.pkl" ):
+    #route_mat:np.ndarray, cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]]
+
+    with open(matdata, "rb") as f:
+        data = pickle.load(f)
+
+    cost_mat = data["cost_matrix"]
+    route_mat = data["routes_matrix"]
+    mat_ids = data["mat_ids"]
+
+    selected_points = [mat_ids[i] for i in selected_ids]
+
+    _, _, cheapest_ids = rand_route_points(selected_points, route_mat, cost_mat, mat_ids)
     opt_route, opt_cost = optymalization(cheapest_ids, cost_mat)
     
     opt_edges =[]
@@ -83,7 +95,7 @@ def opt_route_edges(points: List[Tuple[float, float]], route_mat:np.ndarray,
     
     opt_edges.extend(route_mat[opt_route[-1]][opt_route[0]]) #powrót do pkt startowego
     pts_coords = [mat_ids[i] for i in opt_route] # wspolrzedne punktow
-        
+    
     return opt_edges, pts_coords
 
 

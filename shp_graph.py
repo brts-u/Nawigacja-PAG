@@ -14,6 +14,8 @@ import numpy as np
 import geopandas as gpd
 from komiwojazer import opt_route_edges
 from scipy.spatial import cKDTree
+import pickle 
+from drawing_plt import *
 
 # Klasa węzła grafu
 class Node:
@@ -159,12 +161,22 @@ class Graph:
                     routes_matrix[i][j] = []
                 else: 
                     route = convert_nodes_to_edges(self.dijkstra(points[i], points[j]))
-                    routes_matrix[i][j] = route
-                    #KOSZT WYRAZAM JAKO SUMA LEGTH?!
+                    # zamiast zapisywać obiekty — zapisujemy tylko ID 
+                    safe_route = [(edge.start_node.id, edge.end_node.id) for edge in route]
+                    routes_matrix[i][j] = safe_route
+                    #routes_matrix[i][j] = route
                     cost_matrix[i,j] =calculate_route_cost(route)
+
+        with open("matrix_data2.pkl", "wb") as f:
+            pickle.dump({
+                "cost_matrix": cost_matrix,
+                "routes_matrix": routes_matrix, #zawiera pełną listę krawędzi (par ID węzłów)
+                "mat_ids": mat_ids
+            }, f)
         
         return cost_matrix, routes_matrix, mat_ids
 
+    #TODO: zmienic nazwe a*
     def dijkstra(self, startpoint:Tuple[float, float], endpoint:Tuple[float, float]) -> List[Node]:
         startpoint = self.find_nearest_node(startpoint)
         endpoint = self.find_nearest_node(endpoint)
@@ -184,9 +196,11 @@ class Graph:
             #szukam wezla o najmniejszym dystansie
             min_dist = np.inf
             curr_id = None
+
             for node_id in Q:
-                if d[node_id] < min_dist:
-                    min_dist = d[node_id]
+                dist = d[node_id]+ heuristic(Q[node_id], endpoint)
+                if dist< min_dist:
+                    min_dist = dist
                     curr_id = node_id
 
             #przerzucam wezel
@@ -207,6 +221,8 @@ class Graph:
         
         route = self.reconstruct_path(p, startpoint, endpoint) #przemienia p na sciezke 
         return route
+    
+
 
 class NodeManager:
     def __init__(self):
@@ -217,6 +233,7 @@ class NodeManager:
     def manage_new_node(self, x: float, y: float) -> Node:
         if f'({round(x, self.tolerance)}, {round(y, self.tolerance)})' in self.node_indexes:
             return self.node_indexes[f'({round(x, self.tolerance)}, {round(y, self.tolerance)})']
+        
         node = Node(x, y)
         node.id = self.new_node_id
         self.new_node_id += 1
@@ -267,7 +284,7 @@ def convert_nodes_to_edges(path_nodes: List[Node])->List[Edge]: #konwertuje scie
 def calculate_route_cost(route:List[Edge]):
     cost =0
     for e in route:
-        cost += e.length # TODO: e.cost() ?
+        cost += e.cost() # TODO: e.cost() ?
     return cost
 
 # Demo
@@ -291,6 +308,11 @@ if __name__ == "__main__":
 
     final, pts = opt_route_edges(points2, routes_matrix, cost_matrix, mat_ids)
 
+    saved_matrixes = "matrix_data.pkl"
+    #TODO: wgrane jest 14 punktów -> trzebby zrobić na końcowm jakieś validate
+    selected_ids = [0,3, 6, 7, 10,13]
+    final, pts = opt_route_edges(selected_ids, saved_matrixes)
+   
     from drawing_plt import draw_pts_connection
     draw_pts_connection(graph, final,pts)
 
