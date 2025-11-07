@@ -28,6 +28,19 @@ def read_points(path) -> List[Tuple[float, float]]:
             points.append((x, y))
     return points
 
+def read_json_points(json_path: str) -> List[Tuple[float, float]]:
+    import json
+
+    with open(json_path, 'r', encoding="utf-8-sig") as f:
+        data = json.load(f)
+
+    points = []
+    for feature in data['features']:
+        x = float(feature['geometry']['coordinates'][0])
+        y = float(feature['geometry']['coordinates'][1])
+        points.append((x, y))
+
+    return points
 def ceil_tol(v, tol):
     return ceil(v / tol) * tol
 

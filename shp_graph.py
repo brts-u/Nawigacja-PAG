@@ -9,9 +9,9 @@ from typing import List, Tuple, Dict
 
 from support_functions import *
 
+import random
 import numpy as np
 import geopandas as gpd
-import folium
 from komiwojazer import opt_route_edges
 from scipy.spatial import cKDTree
 import pickle 
@@ -289,18 +289,24 @@ def calculate_route_cost(route:List[Edge]):
 
 # Demo
 if __name__ == "__main__":
-    #shp_file_paths = ["..\\kujawsko_pomorskie_m_Torun/L4_1_BDOT10k__OT_SKJZ_L.shp",
-    #                  "..\\kujawsko_pomorskie_pow_torunski/L4_2_BDOT10k__OT_SKJZ_L.shp"]
+    shp_file_paths = [r"..\SHP_SKJZ\PL.PZGiK.994.BDOT10k.0463__OT_SKJZ_L.shp", r"..\SHP_SKJZ\PL.PZGiK.994.BDOT10k.0415__OT_SKJZ_L.shp"]
+    json_pts_path = r"..\punkty\punkty.geojson"
     #test_path = r"C:\aszkola\5 sem\pag\projekt1\dane\testowe.shp"
-    #test_path = r"..\test_shp.shp"
-    #rozjechane = r"C:\Users\burb2\Desktop\Pliki Studia\PAG\rozjechane_drogi.shp"
-    shp_file_paths =[r"C:\aszkola\5 sem\pag\projekt1\DROGIWYB\OST_TORUN_SKJZ.shp"]
-    
+    test_path = r"..\test_shp.shp"
+    rozjechane = r"C:\Users\burb2\Desktop\Pliki Studia\PAG\rozjechane_drogi.shp"
+    points_path = r"punkty2.txt"
+    points2_path =r"punkty2.txt"
+
     graph = build_graph_from_shapefile(shp_file_paths)
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")
 
-    #cost_matrix, routes_matrix, mat_ids = graph.matrixes(points) #a tu sie beda cala noc liczyly
-    # print(cost_matrix)
+    # points = read_points(points_path) # tutaj trzeba wczytac te 40 pkt
+    points = read_json_points(json_pts_path)
+    points2 = random.sample(points, 10)
+    cost_matrix, routes_matrix, mat_ids = graph.matrixes(points) #a tu sie beda cala noc liczyly
+    # points2 = read_points(points2_path) # tutaj wczytac punkty ktore sb wybralam
+
+    final, pts = opt_route_edges(points2, routes_matrix, cost_matrix, mat_ids)
 
     saved_matrixes = "matrix_data.pkl"
     #TODO: wgrane jest 14 punktów -> trzebby zrobić na końcowm jakieś validate
@@ -308,8 +314,6 @@ if __name__ == "__main__":
     final, pts = opt_route_edges(selected_ids, saved_matrixes)
    
     from drawing_plt import draw_pts_connection
-    draw_pts_connection(graph, final, pts)
-    
-    nodes = list(graph.nodes.values())
-    route = graph.dijkstra((473300, 571850), (nodes[30].x, nodes[30].y))
-    print(f"Znaleziono trasę o długości {calculate_route_cost(convert_nodes_to_edges(route))} metrów.")
+    draw_pts_connection(graph, final,pts)
+
+
