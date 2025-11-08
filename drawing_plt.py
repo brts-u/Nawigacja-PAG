@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+from matplotlib import cm
 import time
 import random
 from shp_graph import *
@@ -40,20 +41,20 @@ def draw_point(point: Tuple[float, float]):
 def draw_pts_connection(graph: Graph, edges, coords=List[Tuple[float, float]]):
     draw_graph(graph)
 
-    #for edge in edges:
-        #x_coords = [edge.start_node.x, edge.end_node.x]
-        #y_coords = [edge.start_node.y, edge.end_node.y]
-    for edge in edges:
+    cmap = cm.get_cmap('autumn')
+    colors = cmap([i / len(edges) for i in range(len(edges))])
+
+    for edge, color in zip(edges, colors):
         start = graph.nodes[edge[0]]
         end = graph.nodes[edge[1]]
         x_coords = [start.x, end.x]
         y_coords = [start.y, end.y]
-        plt.plot(x_coords, y_coords, color='r')  # linia
+        plt.plot(x_coords, y_coords, color=color)  # linia
 
     ptsXcoords = [c[0] for c in coords]
     ptsYcoords = [c[1] for c in coords]
 
-    plt.plot(ptsXcoords, ptsYcoords, 'ro')
+    plt.plot(ptsXcoords, ptsYcoords, color = 'black', marker='.', linestyle='None')  # punkty
 
     plt.title("Ścieżka travelling salesman")
     plt.show()

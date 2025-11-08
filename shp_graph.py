@@ -33,10 +33,10 @@ class Node:
         # Teoretycznie powinien być blok Try-Except, ale to by oznaczało, że graf został błędnie zbudowany
 
     def heuristic(self, other: Node) -> float:
-        return euclidean_distance((self.x, self.y), (other.x, other.y)) / (1000 * speed['autostrada'])
+        return euclidean_distance((self.x, self.y), (other.x, other.y)) * kiloseconds_per_hour / (speed_kmh['autostrada'])
 
 # Prędkości przypisane do klas dróg w km/h
-speed = {   # Okazuje się, że nie da się tego zmapować tak 1:1, więc wybrałem takie, które mają największy sens
+speed_kmh = {   # Okazuje się, że nie da się tego zmapować tak 1:1, więc wybrałem takie, które mają największy sens
     "autostrada": 140,   # Autostrada
     "droga ekspresowa": 120,   # Droga ekspresowa
     "droga główna ruchu przyśpieszonego": 90,   # Droga główna przyspieszona
@@ -66,7 +66,7 @@ class Edge:
 
     # Koszt przejazdu krawędzi w sekundach
     def cost(self) -> float:
-        return self.length * 3.6 / speed.get(self.classification)
+        return self.length * kiloseconds_per_hour / speed_kmh.get(self.classification)
 
 class Graph:
     def __init__(self):

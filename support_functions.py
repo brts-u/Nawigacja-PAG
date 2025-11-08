@@ -2,12 +2,14 @@ from __future__ import annotations
 from typing import Tuple, List
 import numpy as np
 
+kiloseconds_per_hour = 3600 / 1000
+
 def floor(a: float, n: int):
     return np.floor(a * 10**n) / 10**n
 def ceil(a: float, n: int):
     return np.ceil(a * 10**n) / 10**n
 def euclidean_distance(coord1: Tuple[float, float], coord2: Tuple[float, float]) -> float:
-    # Odległość między punktami
+    # Odległość między punktami w metrach
     return np.sqrt((coord1[0] - coord2[0]) ** 2 + (coord1[1] - coord2[1]) ** 2)
 
 def read_points(path) -> List[Tuple[float, float]]:
@@ -37,14 +39,3 @@ def read_json_points(json_path: str) -> List[Tuple[float, float]]:
         points.append((x, y))
 
     return points
-
-''' # TODO: usunąć funkcje?
-def ceil_tol(v, tol):
-    return ceil(v / tol) * tol
-
-def floor_tol(v, tol):
-    return floor(v / tol) * tol
-    
-def heuristic(node1, node2): # na node'ach a nie floatch
-    return np.sqrt((node1.x - node2.x) **2 +(node1.y - node2.y) **2)
-'''
