@@ -93,6 +93,16 @@ class Graph:
 
     def add_feature(self, feature: Dict, manager: NodeManager):
         coords = feature["geometry"]["coordinates"] # z modułu geometry pobiera tylko coordinates
+       
+        dir = feature["properties"].get("kierunkowo", 0) # jeśli nie ma pola w tabeli, zwraca 0
+
+        one_way = False
+        if dir == -1: #odwrotnie niz geometria
+            coords = coords[::-1]
+            one_way = True 
+        elif dir == 1:
+            one_way = True 
+        
         start_coord = coords[0]
         end_coord = coords[-1]
 
@@ -104,15 +114,14 @@ class Graph:
             self.add_node(end_node)
 
         # Długość polilinii w metrach
-        # Shapely.length może szybsza metoda? Nie sprawdzałem, ale chyba nie da się tu nic zoptymalizować, może tylko for-loop?
         length = 0.0
         for i in range(len(coords) - 1):
             length += euclidean_distance((coords[i][0], coords[i][1]), (coords[i + 1][0], coords[i + 1][1]))
 
         classification = feature["properties"]["KLASA_DROG"]
-        # TODO: obsługa dróg jednokierunkowych (?)
-
-        edge = Edge(feature["properties"]["LOKALNYID"], start_node, end_node, length, classification)
+       
+        edge = Edge(feature["properties"]["LOKALNYID"], start_node, end_node, length, classification, one_way)       
+        
         self.add_edge(edge)
 
     def find_nearest_node(self, coordinates: Tuple[float, float]) -> Node:
@@ -362,8 +371,6 @@ if __name__ == "__main__":
     #test_path = r"C:\aszkola\5 sem\pag\projekt1\dane\testowe.shp"
     test_path = r"..\test_shp.shp"
     rozjechane = r"C:\Users\burb2\Desktop\Pliki Studia\PAG\rozjechane_drogi.shp"
-    points_path = r"punkty2.txt"
-    points2_path =r"punkty2.txt"
 
     graph = build_graph_from_shapefile(shp_file_paths)
     print(f"Graph has {len(graph.nodes)} nodes and {len(graph.edges)} edges.")

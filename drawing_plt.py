@@ -31,7 +31,8 @@ def draw_path(graph: Graph, route: List[Node]):
     Ycoords = [r.y for r in route]
     plt.plot(Xcoords, Ycoords, color='r')  # , marker ='o')
 
-    plt.title("Ścieżka znaleziona przez Dijkstrę")
+    plt.title("Najkrótsza ścieżka")
+    plt.show()
 
 def draw_point(point: Tuple[float, float]):
     x, y = point
