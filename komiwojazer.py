@@ -20,7 +20,7 @@ def route_from_list(list_of_ids: List[int], route_mat: np.ndarray) -> List[Tuple
         a = list_of_ids[i]
         b = list_of_ids[i + 1]
         full_route.extend(route_mat[a][b])
-    # Dodaj powrót do punktu startowego
+    
     full_route.extend(route_mat[list_of_ids[-1]][list_of_ids[0]])
     return full_route
 
@@ -32,9 +32,6 @@ def set_cycle_to_beginning(list_of_ids: List[int], start_id: int = 0) -> List[in
     return list_of_ids[start_index:] + list_of_ids[:start_index]
 
 def rand_route_points(points: List[Tuple[float, float]], route_mat:np.ndarray, cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]] ):
-    #points: List[Tuple[float, float]], route_mat:np.ndarray, cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]]):
-    #jeśli pętla to na koniec trzeba dodac punkt który był pierwszy
-    # pierwszy punkt jest startowy!
 
     n = len(points)
     ids = [mat_ids.index(p) for p in points] # konwertuje wybrane punkty na indeksy w macierzach
@@ -43,7 +40,7 @@ def rand_route_points(points: List[Tuple[float, float]], route_mat:np.ndarray, c
     cheapest_route =[]
     cheapest_ids =[]
 
-    for _ in range(100): #losuje x=10 razy i sprawdzam ktora jest
+    for _ in range(100): 
         shuf_ids = ids.copy()
         random.shuffle(shuf_ids)
 
@@ -115,7 +112,7 @@ def simulated_annealing(cheapest_ids: List[int], cost_mat: np.ndarray) -> Tuple[
 
     return best_route, best_cost
 
-def opt_route_edges(selected_ids: List[int], matdata="matrix_data.pkl" ):
+def opt_route_edges(selected_ids: List[int], matdata):
     #route_mat:np.ndarray, cost_mat:np.ndarray, mat_ids: List[Tuple[float, float]]
 
     with open(matdata, "rb") as f:

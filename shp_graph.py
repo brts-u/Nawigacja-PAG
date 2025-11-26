@@ -180,10 +180,9 @@ class Graph:
                     # zamiast zapisywać obiekty — zapisujemy tylko ID 
                     safe_route = [(edge.start_node.id, edge.end_node.id) for edge in route]
                     routes_matrix[i][j] = safe_route
-                    #routes_matrix[i][j] = route
                     cost_matrix[i,j] =calculate_route_cost(route)
 
-        pickle_path = "matrix_data2.pkl"
+        pickle_path = "matrix_data_new.pkl"
         with open(pickle_path, "wb") as f:
             pickle.dump({
                 "cost_matrix": cost_matrix,

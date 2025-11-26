@@ -58,7 +58,7 @@ def draw_pts_connection(graph: Graph, edges, coords=List[Tuple[float, float]]):
     plt.plot(ptsXcoords, ptsYcoords, color = 'black', marker='.', linestyle='None')  # punkty
 
     plt.title("Ścieżka travelling salesman")
-    plt.show()
+    # plt.show()
 
 # Demo
 if __name__ == "__main__":
