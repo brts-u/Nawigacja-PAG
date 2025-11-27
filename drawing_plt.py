@@ -23,7 +23,7 @@ def draw_graph(G: Graph, /, nodeless: bool = False):
     ax.set_xlabel("Easting")
     ax.set_ylabel("Northing")
 
-def draw_path(graph: Graph, route: List[Node]):
+def draw_path(graph: Graph, route: List[Node], title = "Najkrótsza ścieżka"):
 
     draw_graph(graph, nodeless=True)
 
@@ -31,7 +31,7 @@ def draw_path(graph: Graph, route: List[Node]):
     Ycoords = [r.y for r in route]
     plt.plot(Xcoords, Ycoords, color='r')  # , marker ='o')
 
-    plt.title("Najkrótsza ścieżka")
+    plt.title(title)
     plt.show()
 
 def draw_point(point: Tuple[float, float]):

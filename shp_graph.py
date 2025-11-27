@@ -381,7 +381,7 @@ if __name__ == "__main__":
     pickle_file = graph.matrixes(points) #a tu sie beda cala noc liczyly
     # points2 = read_points(points2_path) # tutaj wczytac punkty ktore sb wybralam
 
-    final, pts = opt_route_edges(points2, pickle_file)
+    final, pts, cost = opt_route_edges(points2, pickle_file)
 
     # saved_matrixes = "matrix_data.pkl"
     #TODO: wgrane jest 14 punktów -> trzebby zrobić na końcowm jakieś validate

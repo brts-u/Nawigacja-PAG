@@ -53,7 +53,7 @@ def rand_route_points(points: List[Tuple[float, float]], route_mat:np.ndarray, c
             cheapest_route = route_from_list(shuf_ids, route_mat) # zapisujemy liste id Nodeów, dopiero gdy znajdziemy najtańszą trasę
             cheapest_ids = shuf_ids.copy()
 
-            print(cheapest)
+            #print(cheapest)
 
     return cheapest_route, cheapest, cheapest_ids
 
@@ -138,6 +138,6 @@ def opt_route_edges(selected_ids: List[int], matdata):
     opt_edges.extend(route_mat[opt_route[-1]][opt_route[0]]) #powrót do pkt startowego
     pts_coords = [mat_ids[i] for i in opt_route] # wspolrzedne punktow
     
-    return opt_edges, pts_coords
+    return opt_edges, pts_coords, opt_cost
 
 
